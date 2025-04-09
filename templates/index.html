@@ -3,15 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EMNIST Prediction</title>
+    <title>EMNIST Character Prediction</title>
 </head>
 <body>
-    <h1>EMNIST Character Prediction</h1>
-    <form id="uploadForm">
+    <h1>Welcome to the Home Page!</h1>
+    <p>This is the home page, where you can upload an image to predict its character.</p>
+    <form id="uploadForm" enctype="multipart/form-data">
         <input type="file" id="fileInput" accept="image/*" required>
         <button type="submit">Predict</button>
     </form>
     <h2 id="result"></h2>
+
     <script>
         const form = document.getElementById('uploadForm');
         form.addEventListener('submit', async (e) => {
