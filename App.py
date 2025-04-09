@@ -1,29 +1,45 @@
 from flask import Flask, request, jsonify
+import tensorflow as tf
 import numpy as np
-from tensorflow.keras.models import load_model
-from PIL import Image
-import io
-import base64
+import cv2
 
 app = Flask(__name__)
-model = load_model("emnist_cnn_model.keras")  # Load your model
+
+# Load the trained model
+model = tf.keras.models.load_model("emnist_cnn_model.keras")
 
 @app.route("/")
 def home():
-    return "EMNIST Flask API is running!"
+    return "EMNIST Flask API is live!"
 
 @app.route("/predict", methods=["POST"])
 def predict():
     try:
-        # Receive base64-encoded image
-        data = request.json['image']
-        image = Image.open(io.BytesIO(base64.b64decode(data))).convert('L').resize((28, 28))
-        img_array = np.array(image) / 255.0
-        img_array = img_array.reshape(1, 28, 28, 1)
+        # Check if a file is uploaded
+        if 'file' not in request.files:
+            return jsonify({"error": "No file uploaded"}), 400
+        
+        # Get the uploaded file
+        file = request.files['file']
+        
+        # Read the image
+        image = np.frombuffer(file.read(), np.uint8)
+        image = cv2.imdecode(image, cv2.IMREAD_GRAYSCALE)
 
-        prediction = model.predict(img_array)
-        predicted_class = int(np.argmax(prediction))
+        # Preprocess the image (resize to 28x28, normalize, reshape)
+        image = cv2.resize(image, (28, 28))
+        image = image / 255.0
+        image = image.reshape(1, 28, 28, 1)
 
-        return jsonify({"prediction": predicted_class})
+        # Perform prediction
+        predictions = model.predict(image)
+        predicted_class = np.argmax(predictions, axis=1)[0]
+
+        return jsonify({"predicted_class": int(predicted_class)})
+
     except Exception as e:
-        return jsonify({"error": str(e)})
+        # Handle any errors
+        return jsonify({"error": str(e)}), 500
+
+if __name__ == "__main__":
+    app.run()
