@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.models import load_model
@@ -11,6 +11,11 @@ model = load_model('emnist_cnn_model.keras')
 
 # Define class labels (adjust based on your dataset)
 class_labels = [chr(i) for i in range(48, 58)] + [chr(i) for i in range(65, 91)] + [chr(i) for i in range(97, 123)]
+
+@app.route('/')
+def home():
+    # Serve the index.html file as the homepage
+    return render_template('index.html')
 
 @app.route('/predict', methods=['POST'])
 def predict():
