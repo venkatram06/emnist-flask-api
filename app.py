@@ -1,46 +1,33 @@
-import os
-import tensorflow as tf
 from flask import Flask, request, jsonify
 import numpy as np
+import tensorflow as tf
 from tensorflow.keras.models import load_model
-from tensorflow.keras.preprocessing import image
+from PIL import Image
 
 app = Flask(__name__)
 
-# Load the trained model (make sure this is the correct path to your model file)
+# Load the model
 model = load_model('emnist_cnn_model.keras')
 
-@app.route('/')
-def home():
-    return "Model API is running!"
+# Define class labels (adjust based on your dataset)
+class_labels = [chr(i) for i in range(48, 58)] + [chr(i) for i in range(65, 91)] + [chr(i) for i in range(97, 123)]
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    if request.method == 'POST':
-        # Check if image is present in the request
-        if 'image' not in request.files:
-            return jsonify({'error': 'No image file part'}), 400
+    try:
+        # Get the image file from the request
+        file = request.files['file']
+        img = Image.open(file).convert('L')  # Convert to grayscale
+        img = img.resize((28, 28))  # Resize to 28x28
+        img_array = np.array(img).reshape(1, 28, 28, 1) / 255.0  # Normalize
 
-        img_file = request.files['image']
-        
-        # If no image is selected
-        if img_file.filename == '':
-            return jsonify({'error': 'No selected file'}), 400
+        # Predict using the model
+        predictions = model.predict(img_array)
+        predicted_class = class_labels[np.argmax(predictions)]
 
-        try:
-            img = image.load_img(img_file, target_size=(28, 28), color_mode='grayscale')
-            img_array = image.img_to_array(img)
-            img_array = np.expand_dims(img_array, axis=0)
-            img_array /= 255.0  # Normalize the image
+        return jsonify({'prediction': predicted_class})
+    except Exception as e:
+        return jsonify({'error': str(e)})
 
-            # Predict using the model
-            predictions = model.predict(img_array)
-            predicted_class = np.argmax(predictions)  # Get the predicted class label
-
-            return jsonify({'predicted_class': predicted_class})
-        
-        except Exception as e:
-            return jsonify({'error': f'Error processing the image: {str(e)}'}), 500
-
-if __name__ == "__main__":
-    app.run(debug=True)
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
