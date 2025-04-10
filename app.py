@@ -1,5 +1,5 @@
 import os
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, send_from_directory
 from werkzeug.utils import secure_filename
 from tensorflow.keras.models import load_model
 import numpy as np
@@ -54,9 +54,10 @@ def predict():
 
         return render_template('result.html', filename=filename, label=predicted_label)
 
+# ✅ Updated route to return image file
 @app.route('/display/<filename>')
 def display_image(filename):
-    return f'<img src="/static/uploads/{filename}" width="200">'
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 # ✅ Only for Render (binds to external port)
 if __name__ == "__main__":
