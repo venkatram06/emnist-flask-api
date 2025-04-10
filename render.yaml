@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: emnist-flask-app
+    env: python
+    buildCommand: ""
+    startCommand: gunicorn app:app
+    region: oregon
+    plan: free
+    branch: main
+    runtime: python
+    repo: https://github.com/YOUR_USERNAME/emnist-flask-app
