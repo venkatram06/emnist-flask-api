@@ -6,13 +6,17 @@ import numpy as np
 from PIL import Image
 
 app = Flask(__name__)
-UPLOAD_FOLDER = 'static/uploads'
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-# ✅ Ensure upload folder exists
+# ✅ Use correct upload folder depending on environment
+if os.environ.get("RENDER"):
+    UPLOAD_FOLDER = '/tmp/uploads'  # Safe writable path on Render
+else:
+    UPLOAD_FOLDER = 'static/uploads'  # Works locally
+
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# ✅ Load the model (make sure this file is added to your GitHub repo for Render)
+# ✅ Load the model
 model = load_model('emnist_cnn_model.keras')
 
 # ✅ Mapping for EMNIST
@@ -36,7 +40,7 @@ def predict():
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(filepath)
 
-        # ✅ Preprocess
+        # ✅ Preprocess the image
         img = Image.open(filepath).convert('L')
         img = img.resize((28, 28))
         img = np.array(img).reshape(1, 28, 28, 1).astype('float32') / 255.0
@@ -53,5 +57,5 @@ def display_image(filename):
 
 # ✅ Only for Render (binds to external port)
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))  # Render uses PORT env var
+    port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
