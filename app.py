@@ -1,39 +1,49 @@
-from flask import Flask, render_template, request, jsonify
+import os
+from flask import Flask, render_template, request
+from werkzeug.utils import secure_filename
+from tensorflow.keras.models import load_model
 import numpy as np
-from keras.models import load_model
 from PIL import Image
-import io
 
 app = Flask(__name__)
+UPLOAD_FOLDER = 'static/uploads'
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-# Load the model
 model = load_model('emnist_cnn_model.keras')
 
+# EMNIST mapping
+mapping = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabdefghnqrt"
+
 @app.route('/')
-def home():
-    # Render the home page using an HTML template
+def index():
     return render_template('index.html')
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    # Ensure a file was uploaded
     if 'file' not in request.files:
-        return jsonify({'error': 'No file provided'}), 400
-
+        return 'No file part'
+    
     file = request.files['file']
+    if file.filename == '':
+        return 'No selected file'
 
-    # Process the image
-    img = Image.open(file.stream)
-    img = img.convert('L')  # Convert to grayscale
-    img = img.resize((28, 28))  # Resize to match the EMNIST input size
-    img_array = np.array(img)
-    img_array = img_array.reshape(1, 28, 28, 1) / 255.0  # Normalize and reshape for the model
+    if file:
+        filename = secure_filename(file.filename)
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(filepath)
 
-    # Predict the character
-    prediction = model.predict(img_array)
-    predicted_class = np.argmax(prediction)  # Get the predicted class
-     
-    return jsonify({'prediction': str(predicted_class)})
+        # Preprocess
+        img = Image.open(filepath).convert('L')
+        img = img.resize((28, 28))
+        img = np.array(img)
+        img = img.reshape(1, 28, 28, 1).astype('float32') / 255.0
 
-if __name__ == '__main__':
-    app.run(debug=True)
+        prediction = model.predict(img)
+        class_index = np.argmax(prediction)
+        predicted_label = mapping[class_index]
+
+        return render_template('result.html', filename=filename, label=predicted_label)
+
+@app.route('/display/<filename>')
+def display_image(filename):
+    return f'<img src="/static/uploads/{filename}" width="200">'
