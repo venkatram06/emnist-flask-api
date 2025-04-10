@@ -16,11 +16,10 @@ else:
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# ✅ EMNIST Balanced Mapping: 47 classes (not full a-z)
-# Confirm your model's dataset type. If it's 'balanced', use this:
+# ✅ EMNIST Balanced Mapping (47 classes)
 mapping = list("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabdefghnqrt")
 
-# ✅ Function to load model when needed
+# ✅ Load model
 def load_emnist_model():
     return load_model('emnist_cnn_model.keras')
 
@@ -32,7 +31,7 @@ def index():
 def predict():
     if 'file' not in request.files:
         return 'No file part'
-    
+
     file = request.files['file']
     if file.filename == '':
         return 'No selected file'
@@ -42,17 +41,18 @@ def predict():
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(filepath)
 
-        # ✅ Preprocess the image
-        img = Image.open(filepath).convert('L')
-        img = img.resize((28, 28))
-
-        # ✅ Invert colors: EMNIST expects white text on black background
+        # ✅ Preprocess image to match EMNIST format
+        img = Image.open(filepath).convert('L').resize((28, 28))
         img = np.array(img)
+
+        # EMNIST expects white text on black background, flipped and rotated
         img = 255 - img
+        img = np.rot90(img, k=1)
+        img = np.flip(img, axis=0)
 
         img = img.reshape(1, 28, 28, 1).astype('float32') / 255.0
 
-        # ✅ Load model and predict
+        # ✅ Predict
         model = load_emnist_model()
         prediction = model.predict(img)
         class_index = np.argmax(prediction)
@@ -64,7 +64,7 @@ def predict():
 def display_image(filename):
     return f'<img src="/static/uploads/{filename}" width="200">'
 
-# ✅ Run the app
+# ✅ Run app
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
