@@ -16,8 +16,9 @@ else:
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# ✅ Mapping for EMNIST
-mapping = list("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz")
+# ✅ EMNIST Balanced Mapping: 47 classes (not full a-z)
+# Confirm your model's dataset type. If it's 'balanced', use this:
+mapping = list("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabdefghnqrt")
 
 # ✅ Function to load model when needed
 def load_emnist_model():
@@ -44,9 +45,14 @@ def predict():
         # ✅ Preprocess the image
         img = Image.open(filepath).convert('L')
         img = img.resize((28, 28))
-        img = np.array(img).reshape(1, 28, 28, 1).astype('float32') / 255.0
 
-        # ✅ Load model here to prevent memory overload on Render
+        # ✅ Invert colors: EMNIST expects white text on black background
+        img = np.array(img)
+        img = 255 - img
+
+        img = img.reshape(1, 28, 28, 1).astype('float32') / 255.0
+
+        # ✅ Load model and predict
         model = load_emnist_model()
         prediction = model.predict(img)
         class_index = np.argmax(prediction)
@@ -58,7 +64,7 @@ def predict():
 def display_image(filename):
     return f'<img src="/static/uploads/{filename}" width="200">'
 
-# ✅ Only for Render (binds to external port)
+# ✅ Run the app
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)    
+    app.run(host="0.0.0.0", port=port)
