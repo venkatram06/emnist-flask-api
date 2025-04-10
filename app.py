@@ -16,11 +16,12 @@ else:
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# ✅ Load the model
-model = load_model('emnist_cnn_model.keras')
-
 # ✅ Mapping for EMNIST
 mapping = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabdefghnqrt"
+
+# ✅ Function to load model when needed
+def load_emnist_model():
+    return load_model('emnist_cnn_model.keras')
 
 @app.route('/')
 def index():
@@ -45,6 +46,8 @@ def predict():
         img = img.resize((28, 28))
         img = np.array(img).reshape(1, 28, 28, 1).astype('float32') / 255.0
 
+        # ✅ Load model here to prevent memory overload on Render
+        model = load_emnist_model()
         prediction = model.predict(img)
         class_index = np.argmax(prediction)
         predicted_label = mapping[class_index]
